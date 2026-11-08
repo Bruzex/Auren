@@ -27,6 +27,7 @@ export function Search() {
   });
 
   const [followMap, setFollowMap] = useState<Record<string, FollowStatus>>({});
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Load suggested users on mount
   useEffect(() => {
@@ -95,8 +96,13 @@ export function Search() {
     try {
       const conv = await chatService.getOrCreateConversation(targetUser.id);
       navigate(`/chats/${conv.id}`);
-    } catch (err) {
-      console.warn('Failed to start chat:', err);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'You need to follow each other first before starting a chat.';
+      setNotice(msg);
+      setTimeout(() => setNotice(null), 4000);
     }
   };
 
@@ -137,7 +143,22 @@ export function Search() {
   const q = query.trim();
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-5 pb-32 pt-[max(env(safe-area-inset-top),24px)] md:px-8 md:pb-12 md:pt-10">
+    <div className="relative mx-auto w-full max-w-[720px] px-5 pb-32 pt-[max(env(safe-area-inset-top),24px)] md:px-8 md:pb-12 md:pt-10">
+      <AnimatePresence>
+        {notice && (
+          <motion.div
+            initial={{ opacity: 0, y: -16, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 rounded-full glass-strong px-5 py-2.5 text-[14px] font-medium text-white shadow-2xl ring-1 ring-white/15"
+          >
+            <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+            <span>{notice}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.028em] md:text-[34px]">
         Search
       </h1>

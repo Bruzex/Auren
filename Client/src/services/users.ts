@@ -4,6 +4,7 @@ import type { User, FollowRequest, FollowStatus } from '../types/social';
 
 export interface SearchUserResult extends User {
   followStatus: FollowStatus;
+  isMutual?: boolean;
 }
 
 export interface UserProfileResponse {
@@ -16,6 +17,7 @@ export interface UserProfileResponse {
   lastSeen?: string;
   isPrivate: boolean;
   mutuals: number;
+  isMutual?: boolean;
   stats: {
     followersCount: number;
     followingCount: number;
@@ -34,6 +36,7 @@ export const userService = {
       ...formatBackendUser(u),
       followStatus: u.followStatus || 'follow',
       mutuals: u.mutuals || 0,
+      isMutual: Boolean(u.isMutual),
     }));
   },
 
@@ -43,6 +46,7 @@ export const userService = {
       ...formatBackendUser(u),
       followStatus: u.followStatus || 'follow',
       mutuals: u.mutuals || 0,
+      isMutual: Boolean(u.isMutual),
     }));
   },
 

@@ -74,6 +74,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket): v
           mediaUrl: message.mediaUrl,
           time: message.createdAt,
           status: 'delivered',
+          senderId: socket.user.id,
           sender: {
             id: socket.user.id,
             name: socket.user.fullName,

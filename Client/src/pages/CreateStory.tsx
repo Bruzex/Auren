@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useMotionValue } from 'framer-motion';
 import { ArrowRightIcon, CheckIcon, ChevronLeftIcon, ImagePlusIcon, StarIcon, SwitchCameraIcon, TypeIcon, XIcon } from 'lucide-react';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { StoryTextEditor } from '../components/story/StoryTextEditor';
@@ -19,9 +19,18 @@ export function CreateStory() {
   const c = useStoryComposer();
   const frameRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textX = useMotionValue(0);
+  const textY = useMotionValue(0);
+  const isDraggingRef = useRef(false);
   const gradient = c.background.kind === 'gradient' ? storyGradients.find((g) => g.id === c.background.id) : undefined;
   const style = textStyles.find((s) => s.id === c.textStyle) ?? textStyles[0];
   const showChrome = !c.isEditingText && c.phase !== 'sharing';
+
+  const handleRetake = () => {
+    textX.set(0);
+    textY.set(0);
+    c.retake();
+  };
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,39 +77,57 @@ export function CreateStory() {
         </AnimatePresence>
 
         {/* Placed text */}
-        {c.text && !c.isEditingText &&
-        <div className="absolute inset-x-6 top-[38%] z-10 flex justify-center">
+        {c.text && !c.isEditingText && (
+          <div className="absolute inset-x-6 top-[38%] z-10 flex justify-center pointer-events-none">
             <motion.button
-            type="button"
-            drag
-            dragConstraints={frameRef}
-            dragMomentum={false}
-            onTap={() => c.setIsEditingText(true)}
-            aria-label="Edit text"
-            className={`cursor-grab whitespace-pre-wrap text-center text-[34px] leading-tight active:cursor-grabbing ${style.className}`}
-            style={{ color: c.textColor, textShadow: c.textColor === '#0B0B12' ? 'none' : '0 2px 18px rgba(0,0,0,0.35)' }}>
-            
+              type="button"
+              drag
+              dragConstraints={frameRef}
+              dragMomentum={false}
+              dragElastic={0}
+              onDragStart={() => {
+                isDraggingRef.current = true;
+              }}
+              onDragEnd={() => {
+                setTimeout(() => {
+                  isDraggingRef.current = false;
+                }, 150);
+              }}
+              onClick={() => {
+                if (!isDraggingRef.current) {
+                  c.setIsEditingText(true);
+                }
+              }}
+              aria-label="Edit text"
+              className={`pointer-events-auto cursor-grab select-none whitespace-pre-wrap text-center text-[34px] leading-tight active:cursor-grabbing ${style.className}`}
+              style={{
+                x: textX,
+                y: textY,
+                color: c.textColor,
+                textShadow: c.textColor === '#0B0B12' ? 'none' : '0 2px 18px rgba(0,0,0,0.35)',
+              }}
+            >
               {c.text}
             </motion.button>
           </div>
-        }
+        )}
 
         {/* Top chrome */}
-        {showChrome &&
-        <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between p-4 pt-[max(env(safe-area-inset-top),16px)]">
-            {c.phase === 'review' ?
-          <button type="button" onClick={c.retake} aria-label="Retake" className={overlayButton}>
+        {showChrome && (
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between p-4 pt-[max(env(safe-area-inset-top),16px)]">
+            {c.phase === 'review' ? (
+              <button type="button" onClick={handleRetake} aria-label="Retake" className={overlayButton}>
                 <ChevronLeftIcon className="h-5 w-5" strokeWidth={1.8} />
-              </button> :
-
-          <button type="button" onClick={c.close} aria-label="Close" className={overlayButton}>
+              </button>
+            ) : (
+              <button type="button" onClick={c.close} aria-label="Close" className={overlayButton}>
                 <XIcon className="h-5 w-5" strokeWidth={1.8} />
               </button>
-          }
+            )}
             <p className="text-[15px] font-semibold text-white">New story</p>
             <span className="h-11 w-11" aria-hidden="true" />
           </div>
-        }
+        )}
 
         {/* Tool rail */}
         {showChrome &&

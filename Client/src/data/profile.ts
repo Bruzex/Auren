@@ -7,11 +7,7 @@ export const profileStats = [
 { label: 'Following', value: '312' }];
 
 
-export const highlights: Highlight[] = [
-{ id: 'h1', title: 'Lisbon', cover: media.storyCity },
-{ id: 'h2', title: 'Coast', cover: media.storyOcean },
-{ id: 'h3', title: 'Mornings', cover: media.storyCafe },
-{ id: 'h4', title: 'Friends', cover: media.maya }];
+export const highlights: Highlight[] = [];
 
 
 export const storyArchive: ArchivedStory[] = [

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { chatService } from '../../services/chat';
 import { getSocket } from '../../services/socket';
+import { useAuth } from '../../context/AuthContext';
 import { formatClock } from '../../utils/time';
 import type { Conversation, Message } from '../../types/social';
 
 export function useChatThread(conversation: Conversation) {
+  const { user: currentUser } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -40,13 +42,49 @@ export function useChatThread(conversation: Conversation) {
 
     const handleNewMessage = (msg: any) => {
       if (msg.conversationId === conversation.id) {
+        const isOwn =
+          (msg.senderId && String(msg.senderId) === String(currentUser?.id)) ||
+          (msg.sender?.id && String(msg.sender.id) === String(currentUser?.id)) ||
+          (typeof msg.sender === 'string' && msg.sender === String(currentUser?.id)) ||
+          msg.from === 'me';
+
         setMessages((prev) => {
+          // If this exact message ID is already in the list, ignore
           if (prev.some((m) => m.id === msg.id)) return prev;
+
+          // If message is from current user, reconcile with matching optimistic message
+          if (isOwn) {
+            const tempIndex = prev.findIndex((m) => m.id.startsWith('temp-') && m.text === msg.text);
+            if (tempIndex !== -1) {
+              const updated = [...prev];
+              updated[tempIndex] = {
+                id: msg.id,
+                from: 'me',
+                text: msg.text,
+                time: typeof msg.time === 'string' ? formatClock(new Date(msg.time)) : formatClock(new Date()),
+                status: msg.status || 'delivered',
+              };
+              return updated;
+            }
+            // If already replaced or sent from another tab, append with from: 'me'
+            return [
+              ...prev,
+              {
+                id: msg.id,
+                from: 'me',
+                text: msg.text,
+                time: typeof msg.time === 'string' ? formatClock(new Date(msg.time)) : formatClock(new Date()),
+                status: msg.status || 'delivered',
+              },
+            ];
+          }
+
+          // Incoming message from them
           return [
             ...prev,
             {
               id: msg.id,
-              from: msg.from === 'me' ? 'me' : 'them',
+              from: 'them',
               text: msg.text,
               time: typeof msg.time === 'string' ? formatClock(new Date(msg.time)) : formatClock(new Date()),
               status: msg.status || 'delivered',
@@ -55,7 +93,7 @@ export function useChatThread(conversation: Conversation) {
         });
 
         // Mark seen if message is from them
-        if (msg.from !== 'me') {
+        if (!isOwn) {
           chatService.markAsSeen(conversation.id).catch(() => {});
           socket.emit('mark_seen', { conversationId: conversation.id });
         }
@@ -141,9 +179,13 @@ export function useChatThread(conversation: Conversation) {
         });
 
         // Replace temp optimistic message with real DB message
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...realMsg, from: 'me' } : m))
-        );
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === realMsg.id)) {
+            // Already reconciled by socket event
+            return prev.filter((m) => m.id !== tempId);
+          }
+          return prev.map((m) => (m.id === tempId ? { ...realMsg, from: 'me' } : m));
+        });
       } catch (err) {
         console.warn('Failed to send message:', err);
       }

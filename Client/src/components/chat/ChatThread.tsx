@@ -26,23 +26,28 @@ export function ChatThread({ conversation }: { conversation: Conversation }) {
         >
           <ChevronLeftIcon className="h-5 w-5" strokeWidth={1.8} />
         </Link>
-        <Avatar user={user} size={42} online={user.online} />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[16px] font-semibold tracking-[-0.015em]">
-            {user.name}
-          </h2>
-          <p className="truncate text-[12px]">
-            {isTyping ? (
-              <span className="text-accent-soft">typing…</span>
-            ) : user.online ? (
-              <span className="text-online">Online</span>
-            ) : (
-              <span className="text-label-tertiary">
-                Last seen {user.lastSeen ?? 'recently'}
-              </span>
-            )}
-          </p>
-        </div>
+        <Link
+          to={`/profile/${user.username || user.id}`}
+          className="group flex items-center gap-3 min-w-0 flex-1 hover:opacity-90 transition-opacity focus-visible:outline-none"
+        >
+          <Avatar user={user} size={42} online={user.online} className="transition-transform group-hover:scale-105" />
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-[16px] font-semibold tracking-[-0.015em] text-label group-hover:text-accent-soft transition-colors">
+              {user.name}
+            </h2>
+            <p className="truncate text-[12px]">
+              {isTyping ? (
+                <span className="text-accent-soft">typing…</span>
+              ) : user.online ? (
+                <span className="text-online">Online</span>
+              ) : (
+                <span className="text-label-tertiary">
+                  Last seen {user.lastSeen ?? 'recently'}
+                </span>
+              )}
+            </p>
+          </div>
+        </Link>
         <IconButton label="Voice call" size="sm">
           <PhoneIcon className="h-[18px] w-[18px]" strokeWidth={1.6} />
         </IconButton>

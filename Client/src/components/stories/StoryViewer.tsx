@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { HeartIcon, SendIcon, XIcon } from 'lucide-react';
 import { Avatar } from '../Avatar';
@@ -142,12 +143,18 @@ export function StoryViewer({
                 </span>
               ))}
             </div>
-            <div className="mt-3 flex items-center gap-3 px-1">
-              <Avatar user={user} size={34} />
-              <p className="min-w-0 flex-1 truncate text-[14px] font-semibold text-white">
-                {user.username}
-                <span className="ml-2 font-normal text-white/60">{story.postedAgo}</span>
-              </p>
+            <div className="mt-3 flex items-center justify-between gap-3 px-1">
+              <Link
+                to={`/profile/${user.username || user.id}`}
+                onClick={onClose}
+                className="group flex min-w-0 flex-1 items-center gap-2.5 rounded-full hover:opacity-90 transition-opacity focus-visible:outline-none"
+              >
+                <Avatar user={user} size={34} />
+                <p className="min-w-0 flex-1 truncate text-[14px] font-semibold text-white group-hover:text-accent-soft transition-colors">
+                  {user.username}
+                  <span className="ml-2 font-normal text-white/60">{story.postedAgo}</span>
+                </p>
+              </Link>
               <button
                 type="button"
                 onClick={onClose}

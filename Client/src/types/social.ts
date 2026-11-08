@@ -7,6 +7,7 @@ export type User = {
   online?: boolean;
   lastSeen?: string;
   mutuals?: number;
+  isMutual?: boolean;
 };
 
 export type Story = {
@@ -21,6 +22,7 @@ export type Story = {
 export type Conversation = {
   id: string;
   userId: string;
+  user?: User;
   lastMessage: string;
   time: string;
   unread: number;

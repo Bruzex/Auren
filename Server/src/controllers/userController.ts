@@ -51,6 +51,10 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
         const myFollowingSet = new Set(req.user?.following.map((id) => id.toString()) || []);
         const mutuals = u.followers.filter((f) => myFollowingSet.has(f.toString())).length;
 
+        const userFollowsTarget = followStatus === 'following';
+        const targetFollowsUser = u.following.some((f) => f.toString() === currentUserId?.toString());
+        const isMutual = userFollowsTarget && targetFollowsUser;
+
         return {
           id: u.id,
           name: u.fullName,
@@ -60,6 +64,7 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
           online: u.isOnline,
           lastSeen: u.lastSeen,
           mutuals,
+          isMutual,
           followStatus,
         };
       })
@@ -86,7 +91,7 @@ export async function getSuggestedUsers(req: AuthRequest, res: Response): Promis
       _id: { $nin: [...followingIds, currentUserId] },
     })
       .limit(10)
-      .select('username fullName avatar bio isOnline lastSeen followers isPrivate');
+      .select('username fullName avatar bio isOnline lastSeen followers following isPrivate');
 
     const results = await Promise.all(
       suggested.map(async (u) => {
@@ -103,6 +108,8 @@ export async function getSuggestedUsers(req: AuthRequest, res: Response): Promis
         const myFollowingSet = new Set(req.user?.following.map((id) => id.toString()) || []);
         const mutuals = u.followers.filter((f) => myFollowingSet.has(f.toString())).length;
 
+        const isMutual = false;
+
         return {
           id: u.id,
           name: u.fullName,
@@ -112,6 +119,7 @@ export async function getSuggestedUsers(req: AuthRequest, res: Response): Promis
           online: u.isOnline,
           lastSeen: u.lastSeen,
           mutuals,
+          isMutual,
           followStatus,
         };
       })
@@ -134,7 +142,11 @@ export async function getUserProfile(req: AuthRequest, res: Response): Promise<v
     const { username } = req.params;
     const currentUserId = req.user?._id;
 
-    const user = await User.findOne({ username: username.toLowerCase() });
+    let user = await User.findOne({ username: username.toLowerCase() });
+    if (!user && mongoose.Types.ObjectId.isValid(username)) {
+      user = await User.findById(username);
+    }
+
     if (!user) {
       res.status(404).json({
         success: false,
@@ -165,6 +177,10 @@ export async function getUserProfile(req: AuthRequest, res: Response): Promise<v
     const myFollowingSet = new Set(req.user?.following.map((id) => id.toString()) || []);
     const mutuals = user.followers.filter((f) => myFollowingSet.has(f.toString())).length;
 
+    const userFollowsTarget = req.user?.following.some((f) => f.toString() === user._id.toString()) ?? false;
+    const targetFollowsUser = user.following.some((f) => f.toString() === currentUserId?.toString()) ?? false;
+    const isMutual = userFollowsTarget && targetFollowsUser;
+
     res.status(200).json({
       success: true,
       data: {
@@ -177,6 +193,7 @@ export async function getUserProfile(req: AuthRequest, res: Response): Promise<v
         lastSeen: user.lastSeen,
         isPrivate: user.isPrivate,
         mutuals,
+        isMutual,
         stats: {
           followersCount: user.followers.length,
           followingCount: user.following.length,

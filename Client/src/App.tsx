@@ -33,6 +33,7 @@ export function App() {
               <Route path="notifications" element={<Notifications />} />
               <Route path="chats/:conversationId?" element={<Chats />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="profile/:username" element={<Profile />} />
               <Route path="rooms" element={<AnonymousRooms />} />
             </Route>
 

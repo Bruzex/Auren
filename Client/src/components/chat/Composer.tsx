@@ -14,7 +14,29 @@ export function Composer({ onSend, onTyping, recipient }: ComposerProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const canSend = value.trim().length > 0;
+
+  // Desktop keyboard shortcut: pressing '/' focuses message input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (window.innerWidth < 768) return;
+
+      const target = document.activeElement as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) {
+        return;
+      }
+
+      if (e.key === '/') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -118,9 +140,10 @@ export function Composer({ onSend, onTyping, recipient }: ComposerProps) {
       <label className="glass-pill flex h-12 flex-1 items-center gap-2 rounded-full pl-5 pr-1.5 transition-[box-shadow,border-color] duration-200 focus-within:border-accent/40 focus-within:shadow-[0_0_0_4px_rgba(90,130,255,0.14)]">
         <span className="sr-only">Message {recipient}</span>
         <input
+          ref={inputRef}
           value={value}
           onChange={handleChange}
-          placeholder="Message"
+          placeholder="Message (press / to focus)"
           className="min-w-0 flex-1 bg-transparent text-[15px] text-label outline-none placeholder:text-label-tertiary"
         />
 

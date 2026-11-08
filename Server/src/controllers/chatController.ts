@@ -70,11 +70,30 @@ export async function getOrCreateConversation(req: AuthRequest, res: Response): 
       return;
     }
 
-    const targetUser = await User.findById(targetUserId).select('username fullName avatar isOnline lastSeen');
+    const targetUser = await User.findById(targetUserId).select(
+      'username fullName avatar isOnline lastSeen followers following'
+    );
     if (!targetUser) {
       res.status(404).json({
         success: false,
         message: 'Target user not found',
+      });
+      return;
+    }
+
+    // Mutual follow restriction: both users must follow each other
+    const userFollowsTarget = req.user!.following.some(
+      (id) => id.toString() === targetUser._id.toString()
+    );
+    const targetFollowsUser = targetUser.following.some(
+      (id) => id.toString() === currentUserId.toString()
+    );
+    const isMutual = userFollowsTarget && targetFollowsUser;
+
+    if (!isMutual) {
+      res.status(403).json({
+        success: false,
+        message: 'You need to follow each other first before starting a chat.',
       });
       return;
     }
@@ -245,6 +264,7 @@ export async function sendMessage(req: AuthRequest, res: Response): Promise<void
       mediaUrl: message.mediaUrl,
       time: message.createdAt,
       status: 'delivered',
+      senderId: req.user!.id,
       sender: {
         id: req.user!.id,
         name: req.user!.fullName,
@@ -260,7 +280,7 @@ export async function sendMessage(req: AuthRequest, res: Response): Promise<void
       io.to(`chat:${conversationId}`).emit('new_message', {
         ...formattedMessage,
         conversationId,
-        from: 'them',
+        senderId: req.user!.id,
       });
 
       // Notify each recipient in their personal room
@@ -277,7 +297,7 @@ export async function sendMessage(req: AuthRequest, res: Response): Promise<void
           });
         }
       });
-    } catch {}
+    } catch { }
 
     res.status(201).json({
       success: true,
@@ -325,7 +345,7 @@ export async function markConversationAsSeen(req: AuthRequest, res: Response): P
         conversationId,
         seenBy: currentUserId.toString(),
       });
-    } catch {}
+    } catch { }
 
     res.status(200).json({
       success: true,

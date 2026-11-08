@@ -1,10 +1,6 @@
 import type { User } from '../types/social';
-import { users as initialUsers } from '../data/users';
 
 const userCache = new Map<string, User>();
-
-// Seed initial fallback cache
-initialUsers.forEach((u) => userCache.set(u.id, u));
 
 export function cacheUser(user: User): void {
   if (user?.id) {

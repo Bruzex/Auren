@@ -126,6 +126,10 @@ export async function getStoriesFeed(req: AuthRequest, res: Response): Promise<v
         });
       }
 
+      const hasLiked = story.likes?.some(
+        (l: any) => l.toString() === currentUserId.toString()
+      ) || false;
+
       const userGroup = groupedByUser.get(uid);
       userGroup.stories.push({
         id: story.id,
@@ -139,6 +143,8 @@ export async function getStoriesFeed(req: AuthRequest, res: Response): Promise<v
         time: story.createdAt,
         viewed: hasViewed,
         viewsCount: story.viewers.length,
+        likesCount: story.likes?.length || 0,
+        isLiked: hasLiked,
       });
 
       if (!hasViewed) {
@@ -183,11 +189,17 @@ export async function getUserStories(req: AuthRequest, res: Response): Promise<v
         ? s.viewers.some((v) => v.user.toString() === currentUserId.toString())
         : false;
 
+      const hasLiked = currentUserId
+        ? s.likes?.some((l) => l.toString() === currentUserId.toString())
+        : false;
+
       return {
         id: s.id,
         image: s.mediaUrl || s.backgroundGradient,
         caption: s.caption,
         views: s.viewers.length,
+        likesCount: s.likes?.length || 0,
+        isLiked: Boolean(hasLiked),
         label: active ? 'Active' : 'Expired',
         active,
         viewed: hasViewed,
@@ -283,4 +295,101 @@ export async function deleteStory(req: AuthRequest, res: Response): Promise<void
     });
   }
 }
+
+export async function likeStory(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const currentUserId = req.user!._id;
+    const { id } = req.params;
+
+    const story = await Story.findById(id);
+    if (!story) {
+      res.status(404).json({ success: false, message: 'Story not found' });
+      return;
+    }
+
+    const alreadyLiked = story.likes.some(
+      (uid: any) => uid.toString() === currentUserId.toString()
+    );
+
+    if (alreadyLiked) {
+      // Unlike
+      story.likes = story.likes.filter(
+        (uid: any) => uid.toString() !== currentUserId.toString()
+      );
+    } else {
+      // Like
+      story.likes.push(currentUserId);
+
+      // Create notification for story owner if not self
+      if (story.user.toString() !== currentUserId.toString()) {
+        const notif = await Notification.create({
+          recipient: story.user,
+          sender: currentUserId,
+          type: 'story_like',
+          data: { storyId: story.id },
+        });
+
+        try {
+          const io = getIO();
+          io.to(`user:${story.user.toString()}`).emit('new_notification', {
+            id: notif.id,
+            type: 'story_like',
+            actor: {
+              id: req.user!.id,
+              name: req.user!.fullName,
+              username: req.user!.username,
+              avatar: req.user!.avatar,
+            },
+            storyId: story.id,
+          });
+        } catch {}
+      }
+    }
+
+    await story.save();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        isLiked: !alreadyLiked,
+        likesCount: story.likes.length,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error liking story',
+    });
+  }
+}
+
+export async function getStoryLikes(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const story = await Story.findById(id).populate('likes', 'username fullName avatar isOnline lastSeen');
+    if (!story) {
+      res.status(404).json({ success: false, message: 'Story not found' });
+      return;
+    }
+
+    const likes = (story.likes as any[]).map((u) => ({
+      id: u._id.toString(),
+      name: u.fullName,
+      username: u.username,
+      avatar: u.avatar,
+      online: Boolean(u.isOnline),
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: likes,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error fetching story likes',
+    });
+  }
+}
+
 

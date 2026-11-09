@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SendIcon, UsersIcon, XIcon, ShieldCheckIcon } from 'lucide-react';
 import { getSocket } from '../../services/socket';
 import { RoomDetails } from '../../services/rooms';
+import { EmojiPickerButton } from '../chat/EmojiPickerButton';
 
 interface MessageItem {
   id: string;
@@ -23,6 +24,26 @@ export function AnonymousRoomChat({ room, onClose }: AnonymousRoomChatProps) {
   const [input, setInput] = useState('');
   const [peopleCount, setPeopleCount] = useState(room.participantsCount || 1);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSelectEmoji = (emoji: string) => {
+    const inputEl = inputRef.current;
+    if (!inputEl) {
+      setInput((prev) => prev + emoji);
+      return;
+    }
+    const start = inputEl.selectionStart ?? input.length;
+    const end = inputEl.selectionEnd ?? input.length;
+    const nextVal = input.slice(0, start) + emoji + input.slice(end);
+    setInput(nextVal);
+
+    requestAnimationFrame(() => {
+      const newPos = start + emoji.length;
+      inputEl.selectionStart = newPos;
+      inputEl.selectionEnd = newPos;
+      inputEl.focus();
+    });
+  };
 
   useEffect(() => {
     const socket = getSocket();
@@ -163,16 +184,20 @@ export function AnonymousRoomChat({ room, onClose }: AnonymousRoomChatProps) {
             onSubmit={handleSend}
             className="border-t border-hairline p-4 flex items-center gap-2"
           >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={`Message as ${room.alias}…`}
-              className="glass-pill flex-1 rounded-full px-5 py-3 text-[15px] text-white outline-none placeholder:text-label-tertiary focus:border-accent/40"
-            />
+            <div className="glass-pill flex flex-1 items-center gap-2 rounded-full pl-2.5 pr-4 py-1.5 focus-within:border-accent/40">
+              <EmojiPickerButton onSelect={handleSelectEmoji} />
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={`Message as ${room.alias}…`}
+                className="flex-1 bg-transparent py-1.5 text-[15px] text-white outline-none placeholder:text-label-tertiary"
+              />
+            </div>
             <button
               type="submit"
               disabled={!input.trim()}
-              className="btn-accent flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-40 transition-transform active:scale-95"
+              className="btn-accent flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-40 transition-transform active:scale-95 shrink-0"
             >
               <SendIcon className="h-4 w-4" />
             </button>

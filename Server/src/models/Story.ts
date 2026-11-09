@@ -16,6 +16,7 @@ export interface IStory extends Document {
   backgroundGradient?: string;
   audience: 'story' | 'close-friends';
   viewers: IStoryViewer[];
+  likes: Types.ObjectId[];
   expiresAt: Date;
   isArchived: boolean;
   createdAt: Date;
@@ -72,6 +73,12 @@ const storySchema = new Schema<IStory>(
           type: Date,
           default: Date.now,
         },
+      },
+    ],
+    likes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
       },
     ],
     expiresAt: {

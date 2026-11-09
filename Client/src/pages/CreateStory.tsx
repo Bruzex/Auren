@@ -22,6 +22,7 @@ export function CreateStory() {
   const textX = useMotionValue(0);
   const textY = useMotionValue(0);
   const isDraggingRef = useRef(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const gradient = c.background.kind === 'gradient' ? storyGradients.find((g) => g.id === c.background.id) : undefined;
   const style = textStyles.find((s) => s.id === c.textStyle) ?? textStyles[0];
   const showChrome = !c.isEditingText && c.phase !== 'sharing';
@@ -120,7 +121,12 @@ export function CreateStory() {
                 <ChevronLeftIcon className="h-5 w-5" strokeWidth={1.8} />
               </button>
             ) : (
-              <button type="button" onClick={c.close} aria-label="Close" className={overlayButton}>
+              <button
+                type="button"
+                onClick={() => setShowDiscardConfirm(true)}
+                aria-label="Close"
+                className={overlayButton}
+              >
                 <XIcon className="h-5 w-5" strokeWidth={1.8} />
               </button>
             )}
@@ -289,6 +295,61 @@ export function CreateStory() {
           }
         </AnimatePresence>
       </div>
-    </div>);
 
+      {/* iOS-Style Discard Story Confirmation Dialog */}
+      <AnimatePresence>
+        {showDiscardConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/75 backdrop-blur-md"
+              onClick={() => setShowDiscardConfirm(false)}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+              className="glass-strong relative z-10 w-full max-w-[320px] rounded-[28px] border border-white/15 p-6 text-center shadow-2xl backdrop-blur-2xl"
+            >
+              <h3 className="text-[19px] font-semibold text-white tracking-[-0.015em]">
+                Discard Story?
+              </h3>
+              <p className="mt-2 text-[14px] leading-relaxed text-label-secondary">
+                If you go back now, your story will be lost.
+              </p>
+
+              <div className="mt-6 flex flex-col gap-2.5">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setShowDiscardConfirm(false)}
+                  className="w-full rounded-2xl bg-white/[0.12] py-3 text-[15px] font-semibold text-white transition-colors hover:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                >
+                  Keep Editing
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => {
+                    setShowDiscardConfirm(false);
+                    c.close();
+                  }}
+                  className="w-full rounded-2xl border border-danger/30 bg-danger/15 py-3 text-[15px] font-semibold text-danger transition-colors hover:bg-danger/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/60"
+                >
+                  Discard
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

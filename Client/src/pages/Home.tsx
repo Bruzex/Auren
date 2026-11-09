@@ -13,11 +13,11 @@ import { storyService } from '../services/stories';
 import { chatService } from '../services/chat';
 import { getSocket } from '../services/socket';
 import { formatToday, greeting } from '../utils/time';
-import type { Story, Conversation } from '../types/social';
+import type { Story, Conversation, UserStoryGroup } from '../types/social';
 
 export function Home() {
   const { user, stats } = useAuth();
-  const [stories, setStories] = useState<Story[]>([]);
+  const [storyGroups, setStoryGroups] = useState<UserStoryGroup[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
@@ -26,11 +26,11 @@ export function Home() {
 
   const loadData = useCallback(async () => {
     try {
-      const [feedStories, chatList] = await Promise.all([
+      const [feedGroups, chatList] = await Promise.all([
         storyService.getStoriesFeed(),
         chatService.getConversations(),
       ]);
-      setStories(feedStories);
+      setStoryGroups(feedGroups);
       setConversations(chatList);
     } catch (err) {
       console.warn('Error loading home data:', err);
@@ -59,7 +59,18 @@ export function Home() {
   }, [loadData]);
 
   const markViewed = async (id: string) => {
-    setStories((prev) => prev.map((s) => (s.id === id ? { ...s, viewed: true } : s)));
+    setStoryGroups((prev) =>
+      prev.map((g) => {
+        const hasStory = g.stories.some((s) => s.id === id);
+        if (!hasStory) return g;
+        const updatedStories = g.stories.map((s) => (s.id === id ? { ...s, viewed: true } : s));
+        return {
+          ...g,
+          stories: updatedStories,
+          allViewed: updatedStories.every((s) => s.viewed),
+        };
+      })
+    );
     try {
       await storyService.viewStory(id);
     } catch {}
@@ -104,7 +115,7 @@ export function Home() {
       </header>
 
       <section aria-label="Stories" className="-mx-5 mt-8 md:mx-0">
-        <StoriesRow stories={stories} onOpen={setViewerIndex} />
+        <StoriesRow storyGroups={storyGroups} onOpen={setViewerIndex} />
       </section>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -142,9 +153,9 @@ export function Home() {
       </div>
 
       <StoryViewer
-        stories={stories}
-        index={viewerIndex}
-        onIndexChange={setViewerIndex}
+        storyGroups={storyGroups}
+        userIndex={viewerIndex}
+        onUserIndexChange={setViewerIndex}
         onClose={() => setViewerIndex(null)}
         onViewed={markViewed}
       />

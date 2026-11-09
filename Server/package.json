@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "rimraf dist && tsc",
+    "build": "rm -rf dist && tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/scripts/seed.ts"
   },

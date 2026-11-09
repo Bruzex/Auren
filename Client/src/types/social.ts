@@ -17,6 +17,18 @@ export type Story = {
   caption?: string;
   postedAgo: string;
   viewed: boolean;
+  viewsCount?: number;
+  likesCount?: number;
+  isLiked?: boolean;
+  user?: User;
+};
+
+export type UserStoryGroup = {
+  userId: string;
+  user: User;
+  stories: Story[];
+  allViewed: boolean;
+  latestTime: string;
 };
 
 export type Conversation = {

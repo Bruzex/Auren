@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowUpIcon, MicIcon, PlusIcon } from 'lucide-react';
 import { attachmentOptions } from '../../data/attachments';
+import { EmojiPickerButton } from './EmojiPickerButton';
 
 type ComposerProps = {
   onSend: (text: string, file?: File) => void;
@@ -55,6 +56,26 @@ export function Composer({ onSend, onTyping, recipient }: ComposerProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
     onTyping?.();
+  };
+
+  const handleSelectEmoji = (emoji: string) => {
+    const input = inputRef.current;
+    if (!input) {
+      setValue((prev) => prev + emoji);
+      return;
+    }
+    const start = input.selectionStart ?? value.length;
+    const end = input.selectionEnd ?? value.length;
+    const nextVal = value.slice(0, start) + emoji + value.slice(end);
+    setValue(nextVal);
+    onTyping?.();
+
+    requestAnimationFrame(() => {
+      const newPos = start + emoji.length;
+      input.selectionStart = newPos;
+      input.selectionEnd = newPos;
+      input.focus();
+    });
   };
 
   const submit = (e: React.FormEvent) => {
@@ -137,7 +158,8 @@ export function Composer({ onSend, onTyping, recipient }: ComposerProps) {
         </AnimatePresence>
       </div>
 
-      <label className="glass-pill flex h-12 flex-1 items-center gap-2 rounded-full pl-5 pr-1.5 transition-[box-shadow,border-color] duration-200 focus-within:border-accent/40 focus-within:shadow-[0_0_0_4px_rgba(90,130,255,0.14)]">
+      <label className="glass-pill flex h-12 flex-1 items-center gap-2 rounded-full pl-2.5 pr-1.5 transition-[box-shadow,border-color] duration-200 focus-within:border-accent/40 focus-within:shadow-[0_0_0_4px_rgba(90,130,255,0.14)]">
+        <EmojiPickerButton onSelect={handleSelectEmoji} />
         <span className="sr-only">Message {recipient}</span>
         <input
           ref={inputRef}

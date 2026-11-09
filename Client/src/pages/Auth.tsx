@@ -8,12 +8,6 @@ import { Button } from '../components/Button';
 
 type Mode = 'login' | 'register';
 
-const SEEDED_ACCOUNTS = [
-  { label: 'Julian (Default)', username: 'julian', password: 'password123' },
-  { label: 'Maya Chen', username: 'mayachen', password: 'password123' },
-  { label: 'Sofia Marín', username: 'sofi.marin', password: 'password123' },
-];
-
 export function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,8 +18,8 @@ export function Auth() {
   const [error, setError] = useState<string | null>(null);
 
   // Login form state
-  const [usernameOrEmail, setUsernameOrEmail] = useState('julian');
-  const [password, setPassword] = useState('password123');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // Register form state
   const [regFullName, setRegFullName] = useState('');
@@ -35,12 +29,6 @@ export function Auth() {
   const [regBio, setRegBio] = useState('');
 
   const from = (location.state as any)?.from?.pathname || '/';
-
-  const handleQuickFill = (acc: typeof SEEDED_ACCOUNTS[0]) => {
-    setUsernameOrEmail(acc.username);
-    setPassword(acc.password);
-    setError(null);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,27 +130,6 @@ export function Auth() {
           </button>
         </div>
 
-        {/* Quick Fill Pills for Testing */}
-        {mode === 'login' && (
-          <div className="mt-4">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-label-tertiary">
-              Quick test accounts:
-            </p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {SEEDED_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.username}
-                  type="button"
-                  onClick={() => handleQuickFill(acc)}
-                  className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[12px] text-label-secondary transition-colors hover:border-accent/40 hover:bg-white/[0.08] hover:text-white"
-                >
-                  {acc.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Error Alert */}
         <AnimatePresence>
           {error && (
@@ -191,7 +158,7 @@ export function Auth() {
                   type="text"
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  placeholder="e.g. julian"
+                  placeholder="Enter username or email"
                   autoComplete="username"
                   required
                   className="w-full bg-transparent text-[15px] outline-none placeholder:text-label-quaternary"

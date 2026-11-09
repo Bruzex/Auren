@@ -1,6 +1,6 @@
 import { api, getMediaUrl } from './api';
 import { formatBackendUser } from './auth';
-import type { Story, ArchivedStory } from '../types/social';
+import type { Story, ArchivedStory, UserStoryGroup } from '../types/social';
 
 function formatPostedAgo(dateString: string): string {
   try {
@@ -16,49 +16,58 @@ function formatPostedAgo(dateString: string): string {
   }
 }
 
-export interface UserStoryFeedItem {
-  userId: string;
-  user: any;
-  stories: Array<{
-    id: string;
-    image: string;
-    caption?: string;
-    mode: 'camera' | 'text';
-    textStyle?: string;
-    textColor?: string;
-    backgroundGradient?: string;
-    audience: string;
-    time: string;
-    viewed: boolean;
-    viewsCount: number;
-  }>;
-  allViewed: boolean;
-  latestTime: string;
+export interface StoryLikersResponse {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  online?: boolean;
 }
 
 export const storyService = {
-  async getStoriesFeed(): Promise<Story[]> {
-    const res = await api.get<{ success: boolean; data: UserStoryFeedItem[] }>('/stories/feed');
+  async getStoriesFeed(): Promise<UserStoryGroup[]> {
+    const res = await api.get<{ success: boolean; data: any[] }>('/stories/feed');
     const feed = res.data.data;
 
-    // Flatten to Story[] representation for StoriesRow and StoryViewer
-    const flattenedStories: Story[] = [];
-
-    feed.forEach((group) => {
-      group.stories.forEach((s) => {
-        flattenedStories.push({
+    return feed.map((group) => {
+      const formattedUser = group.user ? formatBackendUser(group.user) : undefined;
+      return {
+        userId: group.userId,
+        user: formattedUser,
+        allViewed: Boolean(group.allViewed),
+        latestTime: group.latestTime,
+        stories: (group.stories || []).map((s: any) => ({
           id: s.id,
           userId: group.userId,
           image: getMediaUrl(s.image),
           caption: s.caption,
           postedAgo: formatPostedAgo(s.time),
-          viewed: s.viewed,
-          user: group.user ? formatBackendUser(group.user) : undefined,
-        } as any);
-      });
+          viewed: Boolean(s.viewed),
+          viewsCount: s.viewsCount || 0,
+          likesCount: s.likesCount || 0,
+          isLiked: Boolean(s.isLiked),
+          user: formattedUser,
+        })),
+      };
     });
+  },
 
-    return flattenedStories;
+  async likeStory(storyId: string): Promise<{ isLiked: boolean; likesCount: number }> {
+    const res = await api.post<{ success: boolean; data: { isLiked: boolean; likesCount: number } }>(
+      `/stories/${storyId}/like`
+    );
+    return res.data.data;
+  },
+
+  async getStoryLikes(storyId: string): Promise<StoryLikersResponse[]> {
+    const res = await api.get<{ success: boolean; data: any[] }>(`/stories/${storyId}/likes`);
+    return res.data.data.map((u) => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      avatar: getMediaUrl(u.avatar),
+      online: Boolean(u.online),
+    }));
   },
 
   async getUserStories(userId: string): Promise<ArchivedStory[]> {
